@@ -135,7 +135,8 @@ def main(args):
     onnx_output, t_onnx = onnx_forward(onnx_model, onnx_image)
     caffe_output, t_caffe = caffe_forward(caffe_model, caffe_image)
 
-    print(pytorch_output[0][0:5])
+    output = pytorch_output.detach().numpy()
+    print(output[0][0:5])
     print(onnx_output[0][0:5])
     print(caffe_output[0][0:5])
 
