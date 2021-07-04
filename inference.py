@@ -12,11 +12,34 @@ import onnxruntime
 
 from target_model import mobilenet_v1
 
+class ToTensorGjz(object):
+    def __call__(self, pic):
+        if isinstance(pic, np.ndarray):
+            img = torch.from_numpy(pic.transpose((2, 0, 1)))
+            return img.float()
+
+    def __repr__(self):
+        return self.__class__.__name__ + '()'
+
+class NormalizeGjz(object):
+    def __init__(self, mean, std):
+        self.mean = mean
+        self.std = std
+
+    def __call__(self, tensor):
+        tensor.sub_(self.mean).div_(self.std)
+        return tensor
+
 def load_pytorch_image(image_path):
     img = cv2.imread(image_path)
-    img = torch.from_numpy(img.transpose((2, 0, 1)))
-    img = img.float()
-    img = img.unsqueeze(0)
+
+    transform_normalize = NormalizeGjz(mean=127.5, std=128)
+    transform_to_tensor = ToTensorGjz()
+    transform = transforms.Compose([
+        transform_to_tensor, 
+        transform_normalize
+    ])
+    img = transform(img).unsqueeze(0)
     return img
 
 def load_model_pytorch(factor):
@@ -45,11 +68,13 @@ def pytorch_forward(model, img):
     t_start = time.time()
     output = model(img)
     t_end = time.time()
+    torch.set_printoptions(precision=7)
     return output, t_end - t_start
 
 def load_onnx_image(image_path):
     img = cv2.imread(image_path)
     img = img.astype(np.float32).transpose(2, 0, 1)[np.newaxis, ...]
+    img = (img - 127.5) / 128.
     return img
 
 def load_model_onnx(factor):
@@ -67,11 +92,9 @@ def onnx_forward(session, img):
     return output, t_end - t_start
 
 def load_caffe_image(image_path):
-    image = cv2.imread(image_path)
-    img = np.zeros((1, 3, 120, 120))
-    img[0,0,:,:] = image[:,:,0]
-    img[0,1,:,:] = image[:,:,1]
-    img[0,2,:,:] = image[:,:,2]
+    img = cv2.imread(image_path)
+    img = img.astype(np.float32).transpose(2, 0, 1)[np.newaxis, ...]
+    img = (img - 127.5) / 128.
     return img
 
 def load_model_caffe(version):
@@ -94,7 +117,7 @@ def caffe_forward(model, img):
     t_start = time.time()
     output = model.forward()
     t_end = time.time()
-    return output, t_end - t_start
+    return output['fc_blob1'], t_end - t_start
 
 def main(args):
     if args.factor != 1 and args.factor != 0.5:
@@ -112,9 +135,9 @@ def main(args):
     onnx_output, t_onnx = onnx_forward(onnx_model, onnx_image)
     caffe_output, t_caffe = caffe_forward(caffe_model, caffe_image)
 
-    print(pytorch_output)
-    print(onnx_output)
-    print(caffe_output)
+    print(pytorch_output[0][0:5])
+    print(onnx_output[0][0:5])
+    print(caffe_output[0][0:5])
 
     print(t_pytorch * 1000)
     print(t_onnx * 1000)
