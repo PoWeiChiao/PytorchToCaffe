@@ -152,7 +152,7 @@ def main(args):
     print('caffe:   {}'.format(caffe_output[0][0:5]))
 
     print('onnx max diff:   {}'.format(onnx_diff_max))
-    print('caffe max diff:: {}'.format(caffe_diff_max))
+    print('caffe max diff:  {}'.format(caffe_diff_max))
 
     print('pytorch runtime: {:.4f}'.format(t_pytorch * 1000))
     print('onnx runtime: {:.4f}'.format(t_onnx * 1000))
