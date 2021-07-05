@@ -136,13 +136,27 @@ def main(args):
     caffe_output, t_caffe = caffe_forward(caffe_model, caffe_image)
 
     output = pytorch_output.detach().numpy()
-    print(output[0][0:5])
-    print(onnx_output[0][0:5])
-    print(caffe_output[0][0:5])
+    
+    onnx_diff_max = 0
+    caffe_diff_max = 0
+    for i in range(len(output[0])):
+        onnx_diff = abs(output[0][i] - onnx_output[0][i])
+        caffe_diff = abs(output[0][i] - caffe_output[0][i])
+        if onnx_diff > onnx_diff_max:
+            onnx_diff_max = onnx_diff
+        if caffe_diff > caffe_diff_max:
+            caffe_diff_max = caffe_diff
 
-    print(t_pytorch * 1000)
-    print(t_onnx * 1000)
-    print(t_caffe * 1000)
+    print('pytorch: {}'.format(output[0][0:5]))
+    print('onnx:    {}'.format(onnx_output[0][0:5]))
+    print('caffe:   {}'.format(caffe_output[0][0:5]))
+
+    print('onnx max diff:   {}'.format(onnx_diff_max))
+    print('caffe max diff:: {}'.format(caffe_diff_max))
+
+    print('pytorch runtime: {:.4f}'.format(t_pytorch * 1000))
+    print('onnx runtime: {:.4f}'.format(t_onnx * 1000))
+    print('caffe runtime: {:.4f}'.format(t_caffe * 1000))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Inference of pytorch model and caffe model')
